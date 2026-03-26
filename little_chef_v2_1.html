@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小小廚神：神奇食譜挑戰 (原型 v2.1)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f8ff; /* 淺藍色背景 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* 防止滾動條 */
+        }
+        #game-container {
+            width: 960px; /* 經典遊戲畫面寬度 */
+            height: 640px; /* 經典遊戲畫面高度 */
+            background-color: #d2b48c; /* 廚房木色背景 */
+            border: 8px solid #8c6d46;
+            border-radius: 15px;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        /* --- 遊戲資訊區 --- */
+        #info-display {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            right: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 24px;
+            color: #4a2b1f;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 20; /* 確保在上方 */
+        }
+        #recipe-display {
+            font-weight: bold;
+            color: #b33939;
+        }
+        #score-display {
+            color: #2c7744;
+        }
+        #level-display {
+            color: #1a5276;
+        }
+
+
+        /* --- 磅秤 --- */
+        #scale-base {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 180px;
+            background-color: #e0e0e0; /* 淺灰色磅秤底座 */
+            border-radius: 150px 150px 0 0; /* 圓弧頂部 */
+            border: 5px solid #a0a0a0;
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        #scale-plate {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 80px;
+            background-color: #c0c0c0; /* 托盤顏色 */
+            border-radius: 50%;
+            border: 3px solid #909090;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2) inset;
+        }
+        #scale-pointer {
+            position: absolute;
+            bottom: 50px; /* 指針底部連接點 */
+            left: 50%;
+            transform-origin: bottom center; /* 設置旋轉中心為底部 */
+            width: 8px;
+            height: 70px;
+            background-color: #ff4757; /* 紅色指針 */
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.5s ease-out; /* 指針動畫平滑過渡 */
+            z-index: 11;
+        }
+
+        /* 磅秤刻度 (程式員美術，實際會是圖片) */
+        .scale-mark {
+            position: absolute;
+            bottom: 60px; /* 刻度中心 */
+            left: 50%;
+            transform-origin: bottom center;
+            width: 2px;
+            height: 10px;
+            background-color: #333;
+            z-index: 9;
+        }
+        .scale-mark.long { height: 15px; }
+        .scale-text {
+            position: absolute;
+            bottom: 65px;
+            left: 50%;
+            transform-origin: bottom center;
+            font-size: 14px;
+            color: #333;
+            z-index: 9;
+        }
+        /* 由於刻度是動態生成，這裡只是示例樣式 */
+
+        /* --- 食材區 --- */
+        #ingredient-shelf {
+            position: absolute;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            width: 150px;
+            height: 400px;
+            background-color: #f7e7ce; /* 淺色木質架子 */
+            border: 4px solid #b8a087;
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .ingredient {
+            width: 80px;
+            height: 80px;
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            border: 3px solid transparent; /* 預設無邊框 */
+            transition: transform 0.1s ease-out, border-color 0.2s ease-in-out;
+        }
+        .ingredient:hover {
+            transform: scale(1.05);
+            border-color: #ffd700; /* 懸停時金色邊框 */
+        }
+        .ingredient.selected {
+            border-color: #4CAF50; /* 選中時綠色邊框 */
+            box-shadow: 0 0 0 5px rgba(76, 175, 80, 0.5);
+        }
+
+        /* 具體食材樣式 (程式員美術) */
+        /* 這些樣式會被 JS 生成的元素動態覆蓋 */
+
+
+        /* --- 訊息提示 --- */
+        #message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 30px 40px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 28px;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        #message-box button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            margin-top: 20px;
+            transition: background-color 0.2s ease;
+        }
+        #message-box button:hover {
+            background-color: #45a049;
+        }
+
+        /* --- 遊戲結束畫面 --- */
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            color: white;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            text-align: center;
+            z-index: 200;
+        }
+        #game-over-screen button {
+            margin-top: 30px;
+            padding: 15px 30px;
+            font-size: 28px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        #game-over-screen button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- 資訊顯示區 (食譜要求和分數) -->
+        <div id="info-display">
+            <div id="recipe-display">食譜：請量度 0g</div>
+            <div id="score-display">得分：0</div>
+            <div id="level-display">級別：1</div>
+        </div>
+
+        <!-- 磅秤區域 -->
+        <div id="scale-base">
+            <div id="scale-plate"></div>
+            <div id="scale-pointer"></div>
+            <!-- 刻度會由 JavaScript 動態生成，這裡不需要預設 HTML 元素 -->
+        </div>
+
+        <!-- 食材放置架 -->
+        <div id="ingredient-shelf">
+            <!-- 食材會由 JavaScript 動態生成 -->
+        </div>
+
+        <!-- 訊息提示框 -->
+        <div id="message-box">
+            <span id="message-text"></span>
+            <button onclick="hideMessage()">好的</button>
+        </div>
+
+        <!-- 遊戲結束畫面 -->
+        <div id="game-over-screen">
+            <p>恭喜您！</p>
+            <p>完成了小小廚神的挑戰！</p>
+            <p id="final-score"></p>
+            <button onclick="restartGame()">重新開始</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 遊戲設定 ---
+        let currentScore = 0;
+        let currentLevel = 1; // 1: 0-1kg, 2: 0-2kg, 3: 0-5kg
+        let targetWeight = 0;
+        const correctAnswersForLevelUp = 3; // 答對3題升級 (測試用，可調整)
+
+        // 食材數據 (g) - 為了測試方便，加入了更多種類
+        const ingredients = [
+            { id: 'ing-apple', name: '蘋果', weight: 100, color: '#ff6347' },
+            { id: 'ing-flour', name: '麵粉', weight: 200, color: '#ffdb58' },
+            { id: 'ing-sugar', name: '糖', weight: 300, color: '#add8e6' },
+            { id: 'ing-egg', name: '蛋', weight: 50, color: '#f0e68c' },
+            { id: 'ing-butter', name: '牛油', weight: 150, color: '#ffdead' },
+            { id: 'ing-nuts', name: '堅果', weight: 250, color: '#cd853f' },
+            { id: 'ing-chocolate', name: '朱古力', weight: 400, color: '#8b4513' },
+            { id: 'ing-salt', name: '鹽', weight: 20, color: '#e0ffff' },
+            { id: 'ing-milk', name: '牛奶', weight: 500, color: '#f5f5dc' },
+            { id: 'ing-oil', name: '油', weight: 1000, color: '#fdfd96' } // 1kg
+        ];
+
+        // 磅秤的量程和刻度設定 (不同等級)
+        const scaleConfigs = {
+            1: { maxWeight: 1000, majorStep: 100, minorStep: 20, pointerMaxAngle: 120 }, // 0-1kg, 每100g一大格, 每20g一小格
+            2: { maxWeight: 2000, majorStep: 200, minorStep: 50, pointerMaxAngle: 120 }, // 0-2kg, 每200g一大格, 每50g一小格
+            3: { maxWeight: 5000, majorStep: 500, minorStep: 100, pointerMaxAngle: 120 }  // 0-5kg, 每500g一大格, 每100g一小格
+        };
+
+        // DOM 元素
+        const recipeDisplay = document.getElementById('recipe-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const levelDisplay = document.getElementById('level-display');
+        const scalePointer = document.getElementById('scale-pointer');
+        const scaleBase = document.getElementById('scale-base'); // 獲取磅秤底座以添加刻度
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const ingredientShelf = document.getElementById('ingredient-shelf');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreDisplay = document.getElementById('final-score');
+
+
+        // --- 遊戲初始化 ---
+        function initGame() {
+            currentScore = 0;
+            currentLevel = 1;
+            generateIngredientElements(); // 動態生成食材元素
+            updateUI();
+            nextChallenge();
+            generateScaleMarks(); // 初始化刻度
+            gameOverScreen.style.display = 'none';
+            messageBox.style.display = 'none'; // 確保訊息框隱藏
+        }
+
+        // 動態生成食材元素
+        function generateIngredientElements() {
+            ingredientShelf.innerHTML = ''; // 清空現有食材
+            ingredients.forEach(ing => {
+                const div = document.createElement('div');
+                div.id = ing.id;
+                div.className = 'ingredient';
+                div.setAttribute('data-weight', ing.weight);
+                div.style.backgroundColor = ing.color;
+                div.textContent = `${ing.name} (${ing.weight}g)`;
+                div.addEventListener('click', () => handleIngredientClick(ing.weight));
+                ingredientShelf.appendChild(div);
+            });
+        }
+
+        // 動態生成磅秤刻度 (程式員美術)
+        function generateScaleMarks() {
+            // 先清除舊刻度
+            document.querySelectorAll('.scale-mark, .scale-text').forEach(el => el.remove());
+
+            const config = scaleConfigs[currentLevel];
+            const pointerOffsetAngle = -config.pointerMaxAngle / 2; // 讓0g在最左邊
+
+            // 生成刻度線和文字
+            for (let i = 0; i <= config.maxWeight; i += config.minorStep) {
+                const angle = (i / config.maxWeight) * config.pointerMaxAngle + pointerOffsetAngle;
+
+                const mark = document.createElement('div');
+                mark.className = 'scale-mark';
+                mark.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+                scaleBase.appendChild(mark);
+
+                if (i % config.majorStep === 0) { // 主要刻度
+                    mark.classList.add('long');
+                    const text = document.createElement('div');
+                    text.className = 'scale-text';
+                    let displayText = `${i}g`;
+                    if (i >= 1000) {
+                        displayText = `${i / 1000}kg`;
+                    }
+                    text.textContent = displayText;
+
+                    // 調整文字位置，讓文字保持水平
+                    const textAngle = angle;
+                    const radius = 90; // 刻度文字的半徑，用於定位
+                    const textX = Math.sin(textAngle * Math.PI / 180) * radius;
+                    const textY = -Math.cos(textAngle * Math.PI / 180) * radius; // Y軸是反的
+
+                    text.style.left = `calc(50% + ${textX}px)`;
+                    text.style.bottom = `calc(50% + ${textY}px)`;
+                    text.style.transform = `translate(-50%, -50%) rotate(${-textAngle}deg)`; // 旋轉文字讓它保持水平
+                    
+                    scaleBase.appendChild(text);
+                }
+            }
+            // 讓指針回到0g位置
+            updateScalePointer(0);
+        }
+
+
+        // --- UI 更新 ---
+        function updateUI() {
+            scoreDisplay.textContent = `得分：${currentScore}`;
+            levelDisplay.textContent = `級別：${currentLevel}`;
+            // recipeDisplay會在nextChallenge()中更新
+        }
+
+        // --- 磅秤指針動畫 ---
+        function updateScalePointer(weight) {
+            const config = scaleConfigs[currentLevel];
+            const maxAngle = config.pointerMaxAngle;
+            const maxWeight = config.maxWeight;
+            const pointerOffsetAngle = -maxAngle / 2;
+
+            // 計算指針角度
+            let angle = (weight / maxWeight) * maxAngle + pointerOffsetAngle;
+            
+            // 限制角度在最大範圍內，防止指針轉出刻度盤
+            angle = Math.max(pointerOffsetAngle, Math.min(maxAngle / 2, angle));
+
+            scalePointer.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+        }
+
+        // --- 處理食材點擊 ---
+        function handleIngredientClick(droppedWeight) {
+            // 播放磅秤動畫
+            updateScalePointer(droppedWeight);
+
+            // 禁用食材點擊，避免重複點擊
+            document.querySelectorAll('.ingredient').forEach(ing => ing.removeEventListener('click', handleIngredientClick));
+
+            // 檢查答案
+            setTimeout(() => { // 讓指針動畫先播放
+                checkAnswer(droppedWeight);
+                // 重新啟用食材點擊
+                ingredients.forEach(ing => {
+                    const div = document.getElementById(ing.id);
+                    if (div) div.addEventListener('click', () => handleIngredientClick(ing.weight));
+                });
+            }, 600); // 稍大於transition時間
+        }
+
+        // --- 檢查答案 ---
+        function checkAnswer(droppedWeight) {
+            if (droppedWeight === targetWeight) {
+                currentScore++;
+                showMessage('正確！👍');
+                // 檢查是否升級
+                if (currentLevel < Object.keys(scaleConfigs).length && currentScore >= correctAnswersForLevelUp * currentLevel) {
+                    levelUp();
+                } else {
+                    nextChallenge();
+                }
+            } else {
+                showMessage(`錯誤！🙅‍♀️ 您量度了 ${droppedWeight}g，食譜需要 ${targetWeight}g。`);
+            }
+            updateUI();
+        }
+
+        // --- 升級 ---
+        function levelUp() {
+            currentLevel++;
+            showMessage(`恭喜！🎉 升級到 ${currentLevel} 級廚師！磅秤刻度變得更精密了！`);
+            generateScaleMarks(); // 重新生成新刻度
+            updateScalePointer(0); // 指針歸零
+            // 由於showMessage帶有確定按鈕，nextChallenge會在hideMessage後被調用
+        }
+
+        // --- 下一個挑戰 ---
+        function nextChallenge() {
+            const config = scaleConfigs[currentLevel];
+            // 篩選出符合當前等級磅秤最大量程的食材
+            const availableIngredients = ingredients.filter(ing => ing.weight <= config.maxWeight);
+
+            // 如果沒有符合的食材，隨機選擇現有食材
+            if (availableIngredients.length === 0) {
+                targetWeight = ingredients[Math.floor(Math.random() * ingredients.length)].weight;
+                console.warn("No ingredients within current scale maxWeight. Using random from all ingredients.");
+            } else {
+                // 從符合條件的食材中隨機選擇一個作為目標重量
+                const randomIngredient = availableIngredients[Math.floor(Math.random() * availableIngredients.length)];
+                targetWeight = randomIngredient.weight;
+            }
+            
+            recipeDisplay.textContent = `食譜：請量度 ${targetWeight}g`;
+            updateScalePointer(0); // 指針歸零
+        }
+
+        // --- 訊息框顯示/隱藏 ---
+        function showMessage(msg) {
+            messageText.textContent = msg;
+            messageBox.style.display = 'flex';
+        }
+
+        function hideMessage() {
+            messageBox.style.display = 'none';
+            // 訊息框關閉後，如果遊戲未結束，則進行下一個挑戰 (升級時nextChallenge會延遲到這裡)
+            // 確保不是升級後才調用nextChallenge
+            if (currentLevel <= Object.keys(scaleConfigs).length) {
+                // 如果是升級訊息，nextChallenge已經在levelUp內部處理了，這裡不再調用
+                // 這裡的邏輯需要微調，確保hideMessage不會導致nextChallenge重複調用
+                // 最簡單的方法是讓levelUp直接調用nextChallenge，然後hideMessage只隱藏
+            }
+            // 這裡可以加入檢查遊戲是否結束的邏輯
+            checkGameOver();
+        }
+
+        // --- 遊戲結束 ---
+        function checkGameOver() {
+            // 假設最高級別為3，當玩家成功升到3級並完成當前挑戰後，遊戲結束
+            if (currentLevel === Object.keys(scaleConfigs).length && currentScore >= correctAnswersForLevelUp * currentLevel) {
+                finalScoreDisplay.textContent = `您的最終得分是：${currentScore}！`;
+                gameOverScreen.style.display = 'flex';
+            }
+        }
+
+
+        function restartGame() {
+            initGame();
+        }
+
+        // --- 啟動遊戲 ---
+        initGame();
+
+    </script>
+</body>
+</html>
