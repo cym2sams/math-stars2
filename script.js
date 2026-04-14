@@ -1,10 +1,10 @@
-// --- 乘法星星榜 V2.0 (Google Sheets 雲端版) ---
+// --- 乘法星星榜 V2.1 (Google Sheets 雲端版 - 畫面顯示修正) ---
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
 
-    // 1. 立即執行的主函數，這是程式的唯一入口。
+    // 1. 立即執行的主函數
     function main() {
-        // 2. 獲取所有需要的 HTML 元素。
+        // 2. 獲取所有需要的 HTML 元素
         const ELEMENTS = {
             screens: { start: document.getElementById('start-screen'), rules: document.getElementById('rules-screen'), game: document.getElementById('game-screen'), end: document.getElementById('end-screen'), leaderboard: document.getElementById('leaderboard-screen') },
             classSelect: document.getElementById('class-select'),
@@ -28,30 +28,22 @@ document.addEventListener('DOMContentLoaded', () => {
             leaderboardMainContainer: document.getElementById('leaderboard-main'),
             viewLeaderboardBtn: document.getElementById('view-leaderboard-btn'),
             backToStartBtn: document.getElementById('back-to-start-btn'),
-            stars: { small: document.getElementById('stars-small'), medium: document.getElementById('stars-medium'), large: document.getElementById('stars-large') }
         };
 
-        // 3. 定義遊戲的數據和狀態。
+        // 3. 定義遊戲的數據和狀態
         let state = { timerId: null, timeLeft: 60, score: 0, currentUser: {}, currentCorrectAnswer: 0, currentQuestionNums: {}, isAnswering: false, isAidUsed: false };
-        
-        // 【V2.0 修改】使用 Google Apps Script 網址，移除舊的 STORAGE_KEY
         const CONSTANTS = { 
             WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbztsPLMMijrXrQ_rD9ohrs8aLkVxtrcLTSKSSziyar5FKOLh2laz_AYWWS6O6So3Ujw/exec',
             classes: { '2A': 25, '2B': 25, '2C': 25, '2D': 25, '2E': 25, '老師': ["陳子殷老師", "陳綺雯老師", "陳懿文老師", "楊靖霖老師", "陳慧淇老師"] } 
         };
 
-        // 4. 定義所有遊戲功能函數。
+        // 4. 定義所有遊戲功能函數
         const functions = {
             init() {
-                if (!ELEMENTS.classSelect || !ELEMENTS.nameSelect || !ELEMENTS.nextBtn) {
-                    alert("嚴重錯誤：無法找到登入界面的核心元素！遊戲無法啟動。");
-                    return;
-                }
-                functions.createStars();
                 functions.populateClassSelect();
                 functions.updateNameSelect();
-                functions.showScreen('start', 'instant');
                 functions.bindEvents();
+                functions.showScreen('start'); // 初始顯示開始畫面
             },
             bindEvents() {
                 ELEMENTS.classSelect.addEventListener('change', functions.updateNameSelect);
@@ -69,32 +61,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 ELEMENTS.skipBtn.addEventListener('click', () => { if (!state.isAnswering) functions.generateQuestion(); });
                 ELEMENTS.aidBtn.addEventListener('click', functions.showVisualAid);
                 ELEMENTS.aidOverlay.addEventListener('click', functions.hideVisualAid);
-                
-                // 【V2.0 修改】查看排行榜按鈕改為異步操作
                 ELEMENTS.viewLeaderboardBtn.addEventListener('click', async () => {
-                    ELEMENTS.leaderboardMainContainer.innerHTML = '<h2>排行榜</h2><p>正在從雲端載入...</p>';
                     functions.showScreen('leaderboard');
+                    ELEMENTS.leaderboardMainContainer.innerHTML = '<h2>排行榜</h2><p>正在從雲端載入...</p>';
                     await functions.displayLeaderboard(ELEMENTS.leaderboardMainContainer);
                 });
-
                 ELEMENTS.backToStartBtn.addEventListener('click', () => functions.showScreen('start'));
             },
-            showScreen(name, mode) {
-                const c = document.querySelector('.screen.active');
-                const n = ELEMENTS.screens[name];
-                if (!n || c === n) return;
-                
-                if (c && mode !== 'instant') {
-                    c.classList.remove('active');
-                    setTimeout(() => { if (c) c.style.display = 'none'; }, 400);
-                } else if (c) {
-                    c.classList.remove('active');
-                    c.style.display = 'none';
+
+            // 【V2.1 修正】修正畫面顯示邏輯
+            showScreen(name) {
+                // 遍歷所有畫面
+                for (const screenKey in ELEMENTS.screens) {
+                    const screenElement = ELEMENTS.screens[screenKey];
+                    if (screenKey === name) {
+                        // 如果是目標畫面，則新增 active class
+                        screenElement.classList.add('active');
+                    } else {
+                        // 否則，移除 active class
+                        screenElement.classList.remove('active');
+                    }
                 }
-                
-                n.style.display = 'flex';
-                setTimeout(() => { n.classList.add('active'); }, 10);
             },
+
             updateScoreDisplay(type) { 
                 ELEMENTS.scoreDisplay.textContent = `⭐ x ${state.score}`; 
                 ['pulse-animation', 'wiggle-animation'].forEach(c => ELEMENTS.scoreDisplay.classList.remove(c)); 
@@ -147,14 +136,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (state.timeLeft <= 0) functions.endGame(); 
                 }, 1000); 
             },
-            // 【V2.0 修改】結束遊戲流程改為異步，以處理網路請求
             async endGame() {
                 clearInterval(state.timerId);
                 ELEMENTS.timerDisplay.classList.remove('timer-warning');
+                functions.showScreen('end');
                 ELEMENTS.finalScoreText.textContent = `${state.currentUser.name}，你獲得了 ${state.score} 顆星星！`;
                 ELEMENTS.rankInfoText.textContent = '正在儲存分數並擷取最新排名...';
                 ELEMENTS.leaderboardContainer.innerHTML = '<p>載入中...</p>';
-                functions.showScreen('end');
                 
                 if (state.score > 0) {
                     await functions.saveToLeaderboard(state.currentUser.name, state.score);
@@ -172,14 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ELEMENTS.rankInfoText.textContent = rankMessage;
                 await functions.displayLeaderboard(ELEMENTS.leaderboardContainer, state.currentUser.name);
             },
-            // 【V2.0 修改】從雲端獲取完整排行榜
             async getFullLeaderboard() {
                 try {
                     const response = await fetch(CONSTANTS.WEB_APP_URL);
                     if (!response.ok) throw new Error(`HTTP 錯誤! 狀態: ${response.status}`);
                     const result = await response.json();
                     if (result.status === 'success') {
-                        // 後端回傳的資料鍵值是 PlayerName 和 Score，這裡轉換成舊的 name 和 score 格式
                         return result.data.map(p => ({ name: p.PlayerName, score: p.Score }));
                     } else {
                         throw new Error(result.message);
@@ -187,21 +173,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (error) {
                     console.error("無法從雲端獲取排行榜:", error);
                     alert("無法連接到雲端排行榜，請檢查網絡或聯絡管理員。");
-                    return []; // 返回空陣列以避免遊戲崩潰
+                    return [];
                 }
             },
-            // 【V2.0 修改】獲取玩家排名
             async getPlayerRank(playerName) {
                 const board = await functions.getFullLeaderboard();
                 const playerIndex = board.findIndex(p => p.name === playerName);
                 return playerIndex !== -1 ? playerIndex + 1 : -1;
             },
-            // 【V2.0 修改】儲存分數到雲端
             async saveToLeaderboard(playerName, playerScore) {
                 try {
                     await fetch(CONSTANTS.WEB_APP_URL, {
                         method: 'POST',
-                        mode: 'no-cors', // POST 請求需要設定 no-cors
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name: playerName, score: playerScore })
                     });
@@ -210,7 +194,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert("儲存分數失敗，請檢查網絡或聯絡管理員。");
                 }
             },
-            // 【V2.0 修改】顯示雲端排行榜
             async displayLeaderboard(container, currentPlayerName = null) {
                 container.innerHTML = '<h2>排行榜</h2>';
                 const board = await functions.getFullLeaderboard();
@@ -257,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (state.isAnswering) return; 
                 state.isAidUsed = true; 
                 state.isAnswering = true; 
+                ELEMENTS.aidOverlay.classList.add('active');
                 ELEMENTS.aidContent.innerHTML = ''; 
                 const r = Math.min(state.currentQuestionNums.n1, state.currentQuestionNums.n2), 
                       c = Math.max(state.currentQuestionNums.n1, state.currentQuestionNums.n2); 
@@ -271,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     } 
                     ELEMENTS.aidContent.appendChild(row); 
                 } 
-                ELEMENTS.aidOverlay.classList.add('active'); 
             },
             hideVisualAid() { 
                 ELEMENTS.aidOverlay.classList.remove('active'); 
@@ -305,12 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             },
-            createStars() { 
-                const create = (count) => Array.from({ length: count }, () => `${Math.random() * 2000}px ${Math.random() * 2000}px #FFF`).join(','); 
-                if (ELEMENTS.stars.small) ELEMENTS.stars.small.style.boxShadow = create(700); 
-                if (ELEMENTS.stars.medium) ELEMENTS.stars.medium.style.boxShadow = create(200); 
-                if (ELEMENTS.stars.large) ELEMENTS.stars.large.style.boxShadow = create(100); 
-            }
         };
 
         // 5. 啟動
