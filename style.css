@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>教師後台 (最終修正版)</title>
+    <style>
+        /* --- 最終版 CSS (完整內嵌) --- */
+        :root { --deep-space-blue: #0D0B2E; --starlight-yellow: #FFEB3B; --control-panel-white: #FFFFFF; --hologram-blue: #00D1FF; --thruster-orange: #FF9800; --success-green: #76FF03; --warning-red: #F44336; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: auto; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Roboto, sans-serif; 
+            background: linear-gradient(145deg, var(--deep-space-blue), #1a1a40); 
+            color: var(--control-panel-white); 
+            display: flex; 
+            justify-content: flex-start; 
+            align-items: center; 
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 2rem 0; 
+        }
+        .game-container { 
+            width: 95%; max-width: 800px; 
+            background: rgba(255, 255, 255, 0.05); 
+            border-radius: 20px; 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            padding: 20px; 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); 
+            margin: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .title { color: var(--starlight-yellow); font-size: 2.5rem; margin-bottom: 30px; text-shadow: 0 0 10px var(--starlight-yellow); text-align: center; }
+        .btn { border: none; border-radius: 10px; padding: 15px 30px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+        #reset-leaderboard-btn { background-color: var(--warning-red); color: var(--control-panel-white); }
+        .stats-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); }
+        .stat-card { background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-card h3 { font-size: 1rem; color: var(--hologram-blue); margin-bottom: 10px; }
+        .stat-card p { font-size: 1.8rem; font-weight: bold; color: var(--starlight-yellow); }
+        .admin-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid var(--hologram-blue); }
+        .filter-container { display: flex; align-items: center; gap: 10px; }
+        #class-filter { padding: 8px; border-radius: 5px; border: 1px solid var(--hologram-blue); background: rgba(0, 0, 0, 0.3); color: white; font-size: 1rem; }
+        .leaderboard-table, .class-stats-table { width: 100%; text-align: center; border-collapse: collapse; table-layout: fixed; }
+        .leaderboard-table th, .leaderboard-table td, .class-stats-table th, .class-stats-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .leaderboard-table thead, .class-stats-table thead { border-bottom: 2px solid rgba(255,255,255,0.3); }
+        .leaderboard-table th, .class-stats-table th { text-align: left; }
+        .leaderboard-table th:nth-child(1), .leaderboard-table td:nth-child(1) { width: 15%; text-align: center; }
+        .leaderboard-table th:nth-child(2), .leaderboard-table td:nth-child(2) { width: 45%; }
+        .leaderboard-table th:nth-child(3), .leaderboard-table td:nth-child(3) { width: 20%; text-align: center; }
+        .leaderboard-table th:nth-child(4), .leaderboard-table td:nth-child(4) { width: 20%; text-align: center; }
+        .leaderboard-table .score-col, .class-stats-table td { font-weight: bold; color: var(--starlight-yellow); }
+        .btn-delete { background-color: transparent; color: var(--warning-red); border: 1px solid var(--warning-red); padding: 5px 10px; font-size: 0.9rem; border-radius: 5px; cursor: pointer; }
+        .editable-score { cursor: pointer; padding: 2px 5px; border-radius: 3px; }
+        .score-input { width: 60px; padding: 2px; background-color: #fff; color: #000; border: 1px solid var(--hologram-blue); border-radius: 3px; text-align: center; }
+        .class-stats-container { grid-column: 1 / -1; background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px; }
+        .class-stats-container h3 { font-size: 1rem; color: var(--hologram-blue); margin-bottom: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="game-container admin-container">
+        <h1 class="title">教師後台 (離線版)</h1>
+        <div class="stats-panel" id="stats-panel">
+            <div class="stat-card"><h3>總參與人數</h3><p id="stat-total-players">--</p></div>
+            <div class="stat-card"><h3>平均分</h3><p id="stat-avg-score">--</p></div>
+            <div class="stat-card"><h3>最高分</h3><p id="stat-max-score">--</p></div>
+            <div class="stat-card"><h3>最低分</h3><p id="stat-min-score">--</p></div>
+            <div id="class-stats-container" class="class-stats-container">
+                <h3>各班表現一覽</h3>
+                <div id="class-stats-content"></div>
+            </div>
+        </div>
+        <div class="admin-controls">
+            <div class="filter-container">
+                <label for="class-filter">篩選班級:</label>
+                <select id="class-filter"></select>
+            </div>
+            <button id="reset-leaderboard-btn" class="btn">重置排行榜</button>
+        </div>
+        <div id="full-leaderboard-container"><p>正在初始化...</p></div>
+    </div>
+    <script>
+        // --- 離線最終版 JavaScript (與上一版完全相同) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            'use strict';
+            const elements = {
+                fullLeaderboard: document.getElementById('full-leaderboard-container'),
+                resetBtn: document.getElementById('reset-leaderboard-btn'),
+                statTotal: document.getElementById('stat-total-players'),
+                statAvg: document.getElementById('stat-avg-score'),
+                statMax: document.getElementById('stat-max-score'),
+                statMin: document.getElementById('stat-min-score'),
+                classFilter: document.getElementById('class-filter'),
+                classStats: document.getElementById('class-stats-content')
+            };
+            const STORAGE_KEY = 'multiplicationStarChartLeaderboard_offline';
+            let fullBoardData = [];
+
+            const functions = {
+                initialLoad() { fullBoardData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); functions.populateClassFilter(); functions.renderData(fullBoardData); },
+                renderData(board) { functions.updateStats(board); functions.displayTable(board); },
+                populateClassFilter() { const classes = ['全部班級', ...Object.keys(fullBoardData.reduce((acc, p) => { const c = p.name.split(' ')[0]; if(!c.includes('老師')) acc[c] = true; return acc; }, {})).sort()]; elements.classFilter.innerHTML = ''; classes.forEach(c => { const opt = document.createElement('option'); opt.value = c; opt.textContent = c; elements.classFilter.appendChild(opt); }); },
+                handleFilterChange() { const selectedClass = elements.classFilter.value; const dataToRender = (selectedClass === '全部班級') ? fullBoardData : fullBoardData.filter(p => p.name.startsWith(selectedClass)); functions.renderData(dataToRender); },
+                displayTable(board) { board.sort((a,b) => b.score - a.score); if (board.length === 0) { elements.fullLeaderboard.innerHTML = '<h2>完整成績列表</h2><p>沒有符合條件的成績記錄。</p>'; return; } let tableHTML = `<table class="leaderboard-table"><thead><tr><th>排名</th><th>玩家</th><th>分數</th><th>操作</th></tr></thead><tbody>`; board.forEach((player, index) => { tableHTML += `<tr><td>${index + 1}</td><td>${player.name}</td><td class="score-col"><span class="editable-score" data-id="${player.name}" data-score="${player.score}">${player.score}</span></td><td><button class="btn-delete" data-id="${player.name}">刪除</button></td></tr>`; }); tableHTML += `</tbody></table>`; elements.fullLeaderboard.innerHTML = tableHTML; functions.bindDynamicButtons(); },
+                updateStats(board = []) { if (board.length === 0) { elements.statTotal.textContent = '0'; elements.statAvg.textContent = 'N/A'; elements.statMax.textContent = 'N/A'; elements.statMin.textContent = 'N/A'; elements.classStats.innerHTML = '<p>暫無班級數據</p>'; return; } elements.statTotal.textContent = board.length; const totalScore = board.reduce((sum, p) => sum + p.score, 0); elements.statAvg.textContent = Math.round(totalScore / board.length); const scores = board.map(p => p.score); elements.statMax.textContent = Math.max(...scores); elements.statMin.textContent = Math.min(...scores); const classStatsData = { '2A':[],'2B':[],'2C':[],'2D':[],'2E':[] }; board.forEach(p => { const className = p.name.split(' ')[0]; if(classStatsData[className]) classStatsData[className].push(p.score); }); let classTableHTML = `<table class="class-stats-table"><thead><tr><th>班別</th><th>人數</th><th>平均分</th><th>最高分</th></tr></thead><tbody>`; for (const className in classStatsData) { const classScores = classStatsData[className]; const count = classScores.length; const avg = count > 0 ? Math.round(classScores.reduce((a,b)=>a+b,0)/count) : 'N/A'; const max = count > 0 ? Math.max(...classScores) : 'N/A'; classTableHTML += `<tr><td>${className}</td><td>${count}</td><td>${avg}</td><td>${max}</td></tr>`; } classTableHTML += `</tbody></table>`; elements.classStats.innerHTML = classTableHTML; },
+                handleScoreClick(event) { const scoreSpan = event.target; const originalScore = scoreSpan.dataset.score; const playerId = scoreSpan.dataset.id; const input = document.createElement('input'); input.type = 'number'; input.className = 'score-input'; input.value = originalScore; scoreSpan.replaceWith(input); input.focus(); input.select(); const cancel = () => { const newSpan = document.createElement('span'); newSpan.className = 'editable-score'; newSpan.dataset.id = playerId; newSpan.dataset.score = originalScore; newSpan.textContent = originalScore; newSpan.addEventListener('click', functions.handleScoreClick); input.replaceWith(newSpan); }; input.addEventListener('blur', cancel); input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { input.removeEventListener('blur', cancel); const newScore = parseInt(input.value, 10); if (isNaN(newScore) || newScore < 0) { alert("請輸入有效數字。"); functions.initialLoad(); return; } functions.saveEdit(playerId, newScore); } else if (e.key === 'Escape') { input.blur(); } }); },
+                saveEdit(playerId, newScore) { let board = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); const playerIndex = board.findIndex(p => p.name === playerId); if (playerIndex > -1) { board[playerIndex].score = newScore; } localStorage.setItem(STORAGE_KEY, JSON.stringify(board)); functions.initialLoad(); },
+                handleDeleteClick(event) { const playerId = event.target.dataset.id; if (!playerId || !confirm(`確定要刪除玩家 "${playerId}" 嗎？`)) return; let board = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); const newBoard = board.filter(p => p.name !== playerId); localStorage.setItem(STORAGE_KEY, JSON.stringify(newBoard)); functions.initialLoad(); },
+                resetLeaderboard() { if (prompt("將永久刪除所有記錄！\n請輸入 '重置' 確認：") !== '重置') { alert("操作已取消。"); return; } localStorage.removeItem(STORAGE_KEY); alert("排行榜已成功重置！"); functions.initialLoad(); },
+                bindDynamicButtons() { document.querySelectorAll('.btn-delete').forEach(button => button.addEventListener('click', functions.handleDeleteClick)); document.querySelectorAll('.editable-score').forEach(span => span.addEventListener('click', functions.handleScoreClick)); },
+                bindStaticEvents() { elements.resetBtn.addEventListener('click', functions.resetLeaderboard); elements.classFilter.addEventListener('change', functions.handleFilterChange); }
+            };
+            functions.bindStaticEvents();
+            functions.initialLoad();
+        });
+    </script>
+</body>
+</html>
