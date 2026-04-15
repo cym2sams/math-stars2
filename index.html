@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>乘法星星榜</title>
+    <title>乘法星星榜 (最終穩定版)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- 遊戲主容器 -->
     <div class="game-container">
-        <!-- 動畫背景 -->
+        <!-- 背景動畫層 -->
         <div id="stars-small"></div>
         <div id="stars-medium"></div>
         <div id="stars-large"></div>
@@ -16,75 +17,25 @@
         <div class="planet planet-2"></div>
         <div class="planet planet-3"></div>
         
-        <!-- 版本 1.2 -->
-        <div class="version-tag">版本 1.2</div>
+        <div class="version-tag">最終穩定版</div>
 
-        <!-- 開始畫面 -->
-        <div id="start-screen" class="screen active">
-            <h1 class="title">乘法星星榜</h1>
-            <div class="login-form">
-                <div class="select-group"><label for="class-select">班別 / 身份</label><select id="class-select"></select></div>
-                <div class="select-group"><label for="name-select">學號 / 姓名</label><select id="name-select"></select></div>
-                <button id="next-btn" class="btn btn-primary">下一步</button>
-                <button id="view-leaderboard-btn" class="btn btn-secondary">查看排行榜</button>
-            </div>
-        </div>
-
-        <!-- 規則畫面 -->
-        <div id="rules-screen" class="screen">
-            <h1 class="title">遊戲規則</h1>
-            <ul class="rules-list">
-                <li>遊戲時間：60秒</li>
-                <li>答對：<span class="text-success">+10 星星 ⭐</span></li>
-                <li>答錯：<span class="text-danger">-5 星星 ⭐</span></li>
-                <li>使用提示後答對：+5 星星 ⭐</li>
-            </ul>
-            <button id="start-game-btn" class="btn btn-primary">開始遊戲</button>
-        </div>
-        
-        <!-- 遊戲畫面 -->
-        <div id="game-screen" class="screen">
-            <div class="status-bar">
-                <div id="timer">時間：60</div>
-                <div id="score">⭐ x 0</div>
-            </div>
-            <div class="question-container">
-                <div id="question-area">? x ? = ?</div>
-                <button id="aid-btn" class="aid-button">💡</button>
-            </div>
-            <div id="answer-grid">
-                <button class="btn btn-answer">_</button>
-                <button class="btn btn-answer">_</button>
-                <button class="btn btn-answer">_</button>
-                <button class="btn btn-answer">_</button>
-            </div>
-            <button id="skip-btn" class="btn btn-secondary">放棄</button>
-            <div id="aid-overlay" class="overlay-container">
-                <div id="aid-content" class="aid-content-box"></div>
-            </div>
-        </div>
-        
-        <!-- 結束畫面 -->
-        <div id="end-screen" class="screen">
-            <h1 class="title">時間到！</h1>
-            <p id="final-score-text"></p>
-            <p id="rank-info-text" class="rank-info"></p>
-            <div id="leaderboard"></div>
-            <button id="play-again-btn" class="btn btn-primary">再玩一次</button>
-        </div>
-
-        <!-- 排行榜畫面 -->
-        <div id="leaderboard-screen" class="screen">
-            <h1 class="title">乘法星星榜</h1>
-            <div id="leaderboard-main" class="leaderboard-container-main"></div>
-            <button id="back-to-start-btn" class="btn btn-primary">返回</button>
-        </div>
-        
-        <div class="designer-credit">Designed by 陳綺雯老師</div>
+        <!-- 所有遊戲畫面 -->
+        <div id="start-screen" class="screen"><h1 class="title">乘法星星榜</h1><div class="login-form"><div class="select-group"><label for="class-select">班別 / 身份</label><select id="class-select"></select></div><div class="select-group"><label for="name-select">學號 / 姓名</label><select id="name-select"></select></div><button id="next-btn" class="btn btn-primary">下一步</button><button id="view-leaderboard-btn" class="btn btn-secondary">查看排行榜</button></div></div>
+        <div id="rules-screen" class="screen"><h1 class="title">遊戲規則</h1><ul class="rules-list"><li>遊戲時間：60秒</li><li>答對：<span class="text-success">+10 星星 ⭐</span></li><li>答錯：<span class="text-danger">-5 星星 ⭐</span></li><li>使用提示後答對：+5 星星 ⭐</li></ul><button id="start-game-btn" class="btn btn-primary">開始遊戲</button></div>
+        <div id="game-screen" class="screen"><div class="status-bar"><div id="timer">時間：60</div><div id="score">⭐ x 0</div></div><div class="question-container"><div id="question-area">? x ? = ?</div><button id="aid-btn" class="aid-button">💡</button></div><div id="answer-grid"><button class="btn btn-answer">_</button><button class="btn btn-answer">_</button><button class="btn btn-answer">_</button><button class="btn btn-answer">_</button></div><button id="skip-btn" class="btn btn-secondary">放棄</button><div id="aid-overlay" class="overlay-container"><div id="aid-content" class="aid-content-box"></div></div></div>
+        <div id="end-screen" class="screen"><h1 class="title">時間到！</h1><p id="final-score-text"></p><p id="rank-info-text" class="rank-info"></p><div id="leaderboard"></div><button id="play-again-btn" class="btn btn-primary">再玩一次</button></div>
+        <div id="leaderboard-screen" class="screen"><h1 class="title">乘法星星榜</h1><div id="leaderboard-main" class="leaderboard-container-main"></div><button id="back-to-start-btn" class="btn btn-primary">返回</button></div>
     </div>
 
+    <!-- 音效標籤 -->
     <audio id="correct-sound" src="correct.mp3" preload="auto"></audio>
     <audio id="incorrect-sound" src="incorrect.mp3" preload="auto"></audio>
+
+    <!-- Firebase SDK 腳本 -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+    
+    <!-- 我們自己的遊戲腳本，放在所有其他腳本之後 -->
     <script src="script.js"></script>
 </body>
 </html>
