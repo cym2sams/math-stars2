@@ -1,4 +1,4 @@
-// --- 乘法星星榜 (版本 1.2 - 修正雲端儲存問題) ---
+// --- 乘法星星榜 (版本 1.3 - 修正雲端儲存問題) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         let state = { timerId: null, timeLeft: 60, score: 0, currentUser: {}, currentCorrectAnswer: 0, currentQuestionNums: {}, isAnswering: false, isAidUsed: false };
-        
         const CONSTANTS = { classes: { '2A': 25, '2B': 25, '2C': 25, '2D': 25, '2E': 25, '老師': ["陳子殷老師", "陳綺雯老師", "陳懿文老師", "楊靖霖老師", "陳慧淇老師"] } };
         
         const functions = {
@@ -35,42 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             bindEvents() {
                 ELEMENTS.classSelect.addEventListener('change', functions.updateNameSelect);
-                
-                ELEMENTS.nextBtn.addEventListener('click', () => { 
-                    if (!ELEMENTS.classSelect.value || !ELEMENTS.nameSelect.value) return alert('請先選擇！'); 
-                    state.currentUser = {
-                        class: ELEMENTS.classSelect.value,
-                        name: ELEMENTS.nameSelect.options[ELEMENTS.nameSelect.selectedIndex].text
-                    };
-                    functions.showScreen('rules'); 
-                });
-
+                ELEMENTS.nextBtn.addEventListener('click', () => { if (!ELEMENTS.classSelect.value || !ELEMENTS.nameSelect.value) return alert('請先選擇！'); state.currentUser = { class: ELEMENTS.classSelect.value, name: ELEMENTS.nameSelect.options[ELEMENTS.nameSelect.selectedIndex].text }; functions.showScreen('rules'); });
                 ELEMENTS.startGameBtn.addEventListener('click', functions.startGame);
                 ELEMENTS.playAgainBtn.addEventListener('click', () => functions.showScreen('start'));
                 ELEMENTS.answerButtons.forEach(btn => btn.addEventListener('click', functions.handleAnswerClick));
                 ELEMENTS.skipBtn.addEventListener('click', () => { if (!state.isAnswering) functions.generateQuestion(); });
                 ELEMENTS.aidBtn.addEventListener('click', functions.showVisualAid);
                 ELEMENTS.aidOverlay.addEventListener('click', functions.hideVisualAid);
-
-                ELEMENTS.viewLeaderboardBtn.addEventListener('click', async () => { 
-                    functions.showScreen('leaderboard'); 
-                    await functions.displayLeaderboard(ELEMENTS.leaderboardMainContainer);
-                });
-
+                ELEMENTS.viewLeaderboardBtn.addEventListener('click', async () => { functions.showScreen('leaderboard'); await functions.displayLeaderboard(ELEMENTS.leaderboardMainContainer); });
                 ELEMENTS.backToStartBtn.addEventListener('click', () => functions.showScreen('start'));
             },
 
-            showScreen(name) {
-                const c = document.querySelector('.screen.active');
-                const n = ELEMENTS.screens[name];
-                if (!n) return;
-                if (c === n) return;
-                if (c) { c.classList.remove('active'); }
-                n.classList.add('active');
-            },
-
+            showScreen(name) { const c = document.querySelector('.screen.active'); const n = ELEMENTS.screens[name]; if (!n || c === n) return; if (c) c.classList.remove('active'); n.classList.add('active'); },
             updateScoreDisplay(type) { ELEMENTS.scoreDisplay.textContent = `⭐ x ${state.score}`; ['pulse-animation', 'wiggle-animation'].forEach(c => ELEMENTS.scoreDisplay.classList.remove(c)); void ELEMENTS.scoreDisplay.offsetWidth; if (type === 'pulse') ELEMENTS.scoreDisplay.classList.add('pulse-animation'); else if (type === 'wiggle') ELEMENTS.scoreDisplay.classList.add('wiggle-animation'); },
-            handleAnswerClick(e) { if (state.isAnswering) return; state.isAnswering = true; const btn = e.target; const answer = parseInt(btn.textContent, 10); ELEMENTS.correctSound.pause(); ELEMENTS.correctSound.currentTime = 0; ELEMENTS.incorrectSound.pause(); ELEMENTS.incorrectSound.currentTime = 0; if (answer === state.currentCorrectAnswer) { state.score += state.isAidUsed ? 5 : 10; ELEMENTS.correctSound.play(); btn.classList.add('correct-flash'); functions.updateScoreDisplay('pulse'); } else { if (state.score > 0) functions.updateScoreDisplay('wiggle'); state.score -= 5; if (state.score < 0) state.score = 0; ELEMENTS.incorrectSound.play(); btn.classList.add('incorrect-shake'); if (ELEMENTS.answerButtons) { ELEMENTS.answerButtons.forEach(button => { if (parseInt(button.textContent, 10) === state.currentCorrectAnswer) button.classList.add('highlight-correct'); }); } } setTimeout(() => { ELEMENTS.scoreDisplay.textContent = `⭐ x ${state.score}`; functions.generateQuestion(); if (ELEMENTS.answerButtons) {ELEMENTS.answerButtons.forEach(button => button.classList.remove('correct-flash', 'incorrect-shake', 'highlight-correct'));} state.isAnswering = false; }, 800); },
+            handleAnswerClick(e) { if (state.isAnswering) return; state.isAnswering = true; const btn = e.target; const answer = parseInt(btn.textContent, 10); ELEMENTS.correctSound.pause(); ELEMENTS.correctSound.currentTime = 0; ELEMENTS.incorrectSound.pause(); ELEMENTS.incorrectSound.currentTime = 0; if (answer === state.currentCorrectAnswer) { state.score += state.isAidUsed ? 5 : 10; ELEMENTS.correctSound.play(); btn.classList.add('correct-flash'); functions.updateScoreDisplay('pulse'); } else { if (state.score > 0) functions.updateScoreDisplay('wiggle'); state.score -= 5; if (state.score < 0) state.score = 0; ELEMENTS.incorrectSound.play(); btn.classList.add('incorrect-shake'); ELEMENTS.answerButtons.forEach(button => { if (parseInt(button.textContent, 10) === state.currentCorrectAnswer) button.classList.add('highlight-correct'); }); } setTimeout(() => { ELEMENTS.scoreDisplay.textContent = `⭐ x ${state.score}`; functions.generateQuestion(); ELEMENTS.answerButtons.forEach(button => button.classList.remove('correct-flash', 'incorrect-shake', 'highlight-correct')); state.isAnswering = false; }, 800); },
             startGame() { Object.assign(state, { timeLeft: 60, score: 0, isAnswering: false, isAidUsed: false }); functions.updateScoreDisplay(); ELEMENTS.timerDisplay.textContent = `時間：${state.timeLeft}`; ELEMENTS.timerDisplay.classList.remove('timer-warning'); functions.showScreen('game'); functions.generateQuestion(); state.timerId = setInterval(() => { state.timeLeft--; ELEMENTS.timerDisplay.textContent = `時間：${state.timeLeft}`; if (state.timeLeft <= 10) ELEMENTS.timerDisplay.classList.add('timer-warning'); if (state.timeLeft <= 0) functions.endGame(); }, 1000); },
             
             async endGame() {
@@ -83,64 +60,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (state.score > 0) {
                     await functions.saveToLeaderboard(state.currentUser.class, state.currentUser.name, state.score);
-                    // 由於 'no-cors' 模式無法得知後端是否處理完畢，我們在這裡增加一個短暫的延遲
-                    // 讓 Google Sheet 有足夠的時間寫入，然後再讀取排名。
-                    await new Promise(resolve => setTimeout(resolve, 1500)); 
                 }
+                // 稍微延遲一下，給後端一點時間處理，讓排名更即時
+                await new Promise(resolve => setTimeout(resolve, 500)); 
                 
                 const rank = await functions.getPlayerRank(state.currentUser.class, state.currentUser.name);
                 let rankMessage = "";
-                if (rank > 0 && rank <= 10) {
-                    rankMessage = (rank === 1) ? "太棒了！你打破了最高紀錄，榮登榜首！👑" : `恭喜！你目前的排名是：第 ${rank} 名 🎉`;
-                } else if (state.score > 0 && rank > 0) {
-                    rankMessage = `你的準確排名是：第 ${rank} 名。加油！`;
-                } else if (state.score > 0 && rank === -1) {
-                    rankMessage = "分數已成功送出，但排名更新可能稍有延遲。";
-                } else {
-                    rankMessage = "這次沒有分數，下次再努力！";
-                }
+                if (rank > 0 && rank <= 10) { rankMessage = (rank === 1) ? "太棒了！你打破了最高紀錄，榮登榜首！👑" : `恭喜！你目前的排名是：第 ${rank} 名 🎉`; }
+                else if (rank > 0) { rankMessage = `你的準確排名是：第 ${rank} 名。加油！`; }
+                else { rankMessage = "這次沒有分數，下次再努力！"; }
                 ELEMENTS.rankInfoText.textContent = rankMessage;
                 await functions.displayLeaderboard(ELEMENTS.leaderboardContainer, state.currentUser.class, state.currentUser.name);
             },
             
             async getFullLeaderboard() {
                 try {
-                    // 加上快取破壞參數，確保每次都拿到最新資料
                     const url = new URL(SCRIPT_URL);
-                    url.searchParams.set('t', new Date().getTime());
+                    url.searchParams.set('t', new Date().getTime()); // 防止快取
                     const response = await fetch(url);
                     if (!response.ok) throw new Error('Network response was not ok.');
                     const data = await response.json();
-                    if (data.success) {
-                        return data.leaderboard;
-                    } else {
-                        console.error("後端錯誤:", data.message);
-                        return [];
-                    }
-                } catch (error) {
-                    console.error("獲取排行榜時發生網絡錯誤:", error);
-                    return [];
-                }
+                    return data.success ? data.leaderboard : [];
+                } catch (error) { console.error("獲取排行榜時發生網絡錯誤:", error); return []; }
             },
 
-            // ******************** 版本 1.2 變更 ********************
+            // ******************** 版本 1.3 變更 ********************
             async saveToLeaderboard(playerClass, playerName, playerScore) {
                 try {
-                    // 使用 'no-cors' 模式來繞過瀏覽器安全限制
-                    await fetch(SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors', // 這是關鍵的變更！
-                        cache: 'no-cache',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ class: playerClass, name: playerName, score: playerScore }),
-                        // redirect: 'follow' // Apps Script 會重定向，但 no-cors 模式下此設定無效
-                    });
+                    // 透過 GET 請求和 URL 參數來傳遞資料
+                    const url = new URL(SCRIPT_URL);
+                    url.searchParams.set('action', 'write');
+                    url.searchParams.set('class', playerClass);
+                    url.searchParams.set('name', playerName);
+                    url.searchParams.set('score', playerScore);
+                    
+                    // 我們不需要等待回應，但發出請求即可
+                    fetch(url); 
                 } catch (error) {
-                    // 'no-cors' 模式下的錯誤通常是真正的網絡問題 (例如斷線)，而不是 CORS 錯誤
                     console.error("儲存分數時發生網絡錯誤:", error);
-                    alert('無法連接到伺服器，你的分數可能未能成功儲存。請檢查網絡連線。');
+                    alert('無法連接到伺服器，你的分數可能未能成功儲存。');
                 }
             },
             // *******************************************************
@@ -155,35 +113,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.innerHTML = '<h2>排行榜</h2><p>載入中...</p>';
                 const board = await functions.getFullLeaderboard();
                 const top10 = board.slice(0, 10);
-                
-                if (top10.length === 0) {
-                    container.innerHTML = '<h2>排行榜</h2><p>還沒有人上榜！</p>';
-                    return;
-                }
+                if (top10.length === 0) { container.innerHTML = '<h2>排行榜</h2><p>還沒有人上榜！</p>'; return; }
                 
                 container.innerHTML = '<h2>排行榜</h2>';
                 const list = document.createElement('ol');
                 list.className = 'leaderboard-list';
-                
                 top10.forEach((p, i) => {
                     const item = document.createElement('li');
                     item.className = 'leaderboard-item';
-                    
-                    const isCurrentUser = p.class === currentPlayerClass && p.name === currentPlayerName;
-                    if (isCurrentUser) {
+                    if (p.class === currentPlayerClass && p.name === currentPlayerName) {
                         item.classList.add('current-player');
                     }
-
                     const nameSpan = document.createElement('span');
                     nameSpan.textContent = `${i + 1}. ${p.class} ${p.name}`;
                     const scoreSpan = document.createElement('span');
                     scoreSpan.textContent = `⭐ ${p.score}`;
-                    
                     item.appendChild(nameSpan);
                     item.appendChild(scoreSpan);
                     list.appendChild(item);
                 });
-                
                 container.appendChild(list);
             },
 
@@ -194,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateNameSelect() { const c = ELEMENTS.classSelect.value; ELEMENTS.nameSelect.innerHTML = ''; if (c === '老師') CONSTANTS.classes[c].forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; ELEMENTS.nameSelect.appendChild(o); }); else for (let i = 1; i <= CONSTANTS.classes[c]; i++) { const o = document.createElement('option'); o.value = i; o.textContent = `${i}號`; ELEMENTS.nameSelect.appendChild(o); } },
             createStars() { const create = (count) => Array.from({ length: count }, () => `${Math.random() * 2000}px ${Math.random() * 2000}px #FFF`).join(','); if (ELEMENTS.stars.small) ELEMENTS.stars.small.style.boxShadow = create(700); if (ELEMENTS.stars.medium) ELEMENTS.stars.medium.style.boxShadow = create(200); if (ELEMENTS.stars.large) ELEMENTS.stars.large.style.boxShadow = create(100); }
         };
-
         functions.init();
     }
     main();
