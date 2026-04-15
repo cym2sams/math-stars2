@@ -1,4 +1,4 @@
-// --- 乘法星星榜 (版本 1.0 - 獨立儲存版) ---
+// --- 乘法星星榜 (版本 1.2 - 獨立儲存版) ---
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
 
@@ -165,8 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             getFullLeaderboard() { 
                 const data = localStorage.getItem(CONSTANTS.STORAGE_KEY) || '[]'; 
-                const board = JSON.parse(data); 
-                return board.sort((a, b) => b.score - a.score); 
+                try {
+                    const board = JSON.parse(data);
+                    return Array.isArray(board) ? board.sort((a, b) => b.score - a.score) : [];
+                } catch (e) {
+                    return []; // 如果解析失敗，返回空陣列
+                }
             },
             getLeaderboard() { 
                 return functions.getFullLeaderboard().slice(0, 10); 
