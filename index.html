@@ -8,6 +8,7 @@
 </head>
 <body>
     <div class="game-container">
+        <!-- 動畫背景 -->
         <div id="stars-small"></div>
         <div id="stars-medium"></div>
         <div id="stars-large"></div>
@@ -15,9 +16,10 @@
         <div class="planet planet-2"></div>
         <div class="planet planet-3"></div>
         
-        <!-- 版本 1.0 -->
-        <div class="version-tag">版本 1.0</div>
+        <!-- 版本 1.2 -->
+        <div class="version-tag">版本 1.2</div>
 
+        <!-- 開始畫面 -->
         <div id="start-screen" class="screen active">
             <h1 class="title">乘法星星榜</h1>
             <div class="login-form">
@@ -28,6 +30,7 @@
             </div>
         </div>
 
+        <!-- 規則畫面 -->
         <div id="rules-screen" class="screen">
             <h1 class="title">遊戲規則</h1>
             <ul class="rules-list">
@@ -39,6 +42,7 @@
             <button id="start-game-btn" class="btn btn-primary">開始遊戲</button>
         </div>
         
+        <!-- 遊戲畫面 -->
         <div id="game-screen" class="screen">
             <div class="status-bar">
                 <div id="timer">時間：60</div>
@@ -60,6 +64,7 @@
             </div>
         </div>
         
+        <!-- 結束畫面 -->
         <div id="end-screen" class="screen">
             <h1 class="title">時間到！</h1>
             <p id="final-score-text"></p>
@@ -68,6 +73,7 @@
             <button id="play-again-btn" class="btn btn-primary">再玩一次</button>
         </div>
 
+        <!-- 排行榜畫面 -->
         <div id="leaderboard-screen" class="screen">
             <h1 class="title">乘法星星榜</h1>
             <div id="leaderboard-main" class="leaderboard-container-main"></div>
