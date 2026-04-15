@@ -1,4 +1,4 @@
-// --- 乘法星星榜 (版本 1.6 - 結束畫面新增返回按鈕) ---
+// --- 乘法星星榜 (版本 1.7 - 修正結束畫面排行榜佈局) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
@@ -44,12 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ELEMENTS.aidOverlay.addEventListener('click', functions.hideVisualAid);
                 ELEMENTS.viewLeaderboardBtn.addEventListener('click', async () => { functions.showScreen('leaderboard'); await functions.displayLeaderboard(ELEMENTS.leaderboardMainContainer); });
                 ELEMENTS.backToStartBtn.addEventListener('click', () => { state.fullLeaderboard = null; functions.showScreen('start'); });
-
-                // 讓結束畫面的「返回」按鈕也回到主選單
-                ELEMENTS.backToStartFromEndBtn.addEventListener('click', () => {
-                    state.fullLeaderboard = null; // 清除排行榜緩存
-                    functions.showScreen('start');
-                });
+                ELEMENTS.backToStartFromEndBtn.addEventListener('click', () => { state.fullLeaderboard = null; functions.showScreen('start'); });
             },
 
             showScreen(name) { const c = document.querySelector('.screen.active'); const n = ELEMENTS.screens[name]; if (!n || c === n) return; if (c) c.classList.remove('active'); n.classList.add('active'); },
