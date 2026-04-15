@@ -1,4 +1,4 @@
-// --- 乘法星星榜 (版本 1.4 - 修正排名時序問題) ---
+// --- 乘法星星榜 (版本 1.5 - 實現並列排名) ---
 
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
@@ -19,18 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
             stars: { small: document.getElementById('stars-small'), medium: document.getElementById('stars-medium'), large: document.getElementById('stars-large') }
         };
 
-        let state = { timerId: null, timeLeft: 60, score: 0, currentUser: {}, currentCorrectAnswer: 0, currentQuestionNums: {}, isAnswering: false, isAidUsed: false };
+        let state = { timerId: null, timeLeft: 60, score: 0, currentUser: {}, currentCorrectAnswer: 0, currentQuestionNums: {}, isAnswering: false, isAidUsed: false, fullLeaderboard: null }; // 新增一個 state 來緩存排行榜
         const CONSTANTS = { classes: { '2A': 25, '2B': 25, '2C': 25, '2D': 25, '2E': 25, '老師': ["陳子殷老師", "陳綺雯老師", "陳懿文老師", "楊靖霖老師", "陳慧淇老師"] } };
         
         const functions = {
             init() { /* ... (no changes) ... */ if (!ELEMENTS.classSelect || !ELEMENTS.nameSelect || !ELEMENTS.nextBtn) { alert("嚴重錯誤：無法找到登入界面的核心元素！遊戲無法啟動。"); return; } functions.createStars(); functions.populateClassSelect(); functions.updateNameSelect(); functions.showScreen('start'); functions.bindEvents(); },
-            bindEvents() { /* ... (no changes) ... */ ELEMENTS.classSelect.addEventListener('change', functions.updateNameSelect); ELEMENTS.nextBtn.addEventListener('click', () => { if (!ELEMENTS.classSelect.value || !ELEMENTS.nameSelect.value) return alert('請先選擇！'); state.currentUser = { class: ELEMENTS.classSelect.value, name: ELEMENTS.nameSelect.options[ELEMENTS.nameSelect.selectedIndex].text }; functions.showScreen('rules'); }); ELEMENTS.startGameBtn.addEventListener('click', functions.startGame); ELEMENTS.playAgainBtn.addEventListener('click', () => functions.showScreen('start')); ELEMENTS.answerButtons.forEach(btn => btn.addEventListener('click', functions.handleAnswerClick)); ELEMENTS.skipBtn.addEventListener('click', () => { if (!state.isAnswering) functions.generateQuestion(); }); ELEMENTS.aidBtn.addEventListener('click', functions.showVisualAid); ELEMENTS.aidOverlay.addEventListener('click', functions.hideVisualAid); ELEMENTS.viewLeaderboardBtn.addEventListener('click', async () => { functions.showScreen('leaderboard'); await functions.displayLeaderboard(ELEMENTS.leaderboardMainContainer); }); ELEMENTS.backToStartBtn.addEventListener('click', () => functions.showScreen('start')); },
+            bindEvents() { /* ... (no changes) ... */ ELEMENTS.classSelect.addEventListener('change', functions.updateNameSelect); ELEMENTS.nextBtn.addEventListener('click', () => { if (!ELEMENTS.classSelect.value || !ELEMENTS.nameSelect.value) return alert('請先選擇！'); state.currentUser = { class: ELEMENTS.classSelect.value, name: ELEMENTS.nameSelect.options[ELEMENTS.nameSelect.selectedIndex].text }; functions.showScreen('rules'); }); ELEMENTS.startGameBtn.addEventListener('click', functions.startGame); ELEMENTS.playAgainBtn.addEventListener('click', () => { state.fullLeaderboard = null; functions.showScreen('start'); }); ELEMENTS.answerButtons.forEach(btn => btn.addEventListener('click', functions.handleAnswerClick)); ELEMENTS.skipBtn.addEventListener('click', () => { if (!state.isAnswering) functions.generateQuestion(); }); ELEMENTS.aidBtn.addEventListener('click', functions.showVisualAid); ELEMENTS.aidOverlay.addEventListener('click', functions.hideVisualAid); ELEMENTS.viewLeaderboardBtn.addEventListener('click', async () => { functions.showScreen('leaderboard'); await functions.displayLeaderboard(ELEMENTS.leaderboardMainContainer); }); ELEMENTS.backToStartBtn.addEventListener('click', () => { state.fullLeaderboard = null; functions.showScreen('start'); }); },
             showScreen(name) { /* ... (no changes) ... */ const c = document.querySelector('.screen.active'); const n = ELEMENTS.screens[name]; if (!n || c === n) return; if (c) c.classList.remove('active'); n.classList.add('active'); },
             updateScoreDisplay(type) { /* ... (no changes) ... */ ELEMENTS.scoreDisplay.textContent = `⭐ x ${state.score}`; ['pulse-animation', 'wiggle-animation'].forEach(c => ELEMENTS.scoreDisplay.classList.remove(c)); void ELEMENTS.scoreDisplay.offsetWidth; if (type === 'pulse') ELEMENTS.scoreDisplay.classList.add('pulse-animation'); else if (type === 'wiggle') ELEMENTS.scoreDisplay.classList.add('wiggle-animation'); },
             handleAnswerClick(e) { /* ... (no changes) ... */ if (state.isAnswering) return; state.isAnswering = true; const btn = e.target; const answer = parseInt(btn.textContent, 10); ELEMENTS.correctSound.pause(); ELEMENTS.correctSound.currentTime = 0; ELEMENTS.incorrectSound.pause(); ELEMENTS.incorrectSound.currentTime = 0; if (answer === state.currentCorrectAnswer) { state.score += state.isAidUsed ? 5 : 10; ELEMENTS.correctSound.play(); btn.classList.add('correct-flash'); functions.updateScoreDisplay('pulse'); } else { if (state.score > 0) functions.updateScoreDisplay('wiggle'); state.score -= 5; if (state.score < 0) state.score = 0; ELEMENTS.incorrectSound.play(); btn.classList.add('incorrect-shake'); ELEMENTS.answerButtons.forEach(button => { if (parseInt(button.textContent, 10) === state.currentCorrectAnswer) button.classList.add('highlight-correct'); }); } setTimeout(() => { ELEMENTS.scoreDisplay.textContent = `⭐ x ${state.score}`; functions.generateQuestion(); ELEMENTS.answerButtons.forEach(button => button.classList.remove('correct-flash', 'incorrect-shake', 'highlight-correct')); state.isAnswering = false; }, 800); },
-            startGame() { /* ... (no changes) ... */ Object.assign(state, { timeLeft: 60, score: 0, isAnswering: false, isAidUsed: false }); functions.updateScoreDisplay(); ELEMENTS.timerDisplay.textContent = `時間：${state.timeLeft}`; ELEMENTS.timerDisplay.classList.remove('timer-warning'); functions.showScreen('game'); functions.generateQuestion(); state.timerId = setInterval(() => { state.timeLeft--; ELEMENTS.timerDisplay.textContent = `時間：${state.timeLeft}`; if (state.timeLeft <= 10) ELEMENTS.timerDisplay.classList.add('timer-warning'); if (state.timeLeft <= 0) functions.endGame(); }, 1000); },
+            startGame() { state.fullLeaderboard = null; /* ... (no changes) ... */ Object.assign(state, { timeLeft: 60, score: 0, isAnswering: false, isAidUsed: false }); functions.updateScoreDisplay(); ELEMENTS.timerDisplay.textContent = `時間：${state.timeLeft}`; ELEMENTS.timerDisplay.classList.remove('timer-warning'); functions.showScreen('game'); functions.generateQuestion(); state.timerId = setInterval(() => { state.timeLeft--; ELEMENTS.timerDisplay.textContent = `時間：${state.timeLeft}`; if (state.timeLeft <= 10) ELEMENTS.timerDisplay.classList.add('timer-warning'); if (state.timeLeft <= 0) functions.endGame(); }, 1000); },
             
-            // ******************** 版本 1.4 變更 ********************
             async endGame() {
                 clearInterval(state.timerId);
                 ELEMENTS.timerDisplay.classList.remove('timer-warning');
@@ -44,11 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     ELEMENTS.rankInfoText.textContent = "正在儲存分數，並同步最新排名...";
                     await functions.saveToLeaderboard(state.currentUser.class, state.currentUser.name, state.score);
 
-                    // 智慧等待，直到排名出現
                     let rank = -1;
                     let attempts = 0;
-                    while (rank === -1 && attempts < 5) { // 最多嘗試 5 次 (約 5-6 秒)
-                        await new Promise(resolve => setTimeout(resolve, 1200)); // 增加每次查詢的間隔
+                    while (rank === -1 && attempts < 5) {
+                        await new Promise(resolve => setTimeout(resolve, 1200)); 
+                        state.fullLeaderboard = null; // 清除緩存，確保拿到最新排名
                         rank = await functions.getPlayerRank(state.currentUser.class, state.currentUser.name);
                         attempts++;
                     }
@@ -68,11 +67,79 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 await functions.displayLeaderboard(ELEMENTS.leaderboardContainer, state.currentUser.class, state.currentUser.name);
             },
+
+            // ******************** 版本 1.5 新增函式 ********************
+            calculateRanks(board) {
+                if (!board || board.length === 0) return [];
+                let rank = 1;
+                return board.map((p, i) => {
+                    if (i > 0 && p.score < board[i - 1].score) {
+                        // 如果分數比前一個人低，排名就是當前的位置+1
+                        rank = i + 1;
+                    }
+                    // 如果分數和前一個人相同，排名不變
+                    return { ...p, rank: rank };
+                });
+            },
+            // *********************************************************
             
-            async getFullLeaderboard() { /* ... (no changes) ... */ try { const url = new URL(SCRIPT_URL); url.searchParams.set('t', new Date().getTime()); const response = await fetch(url); if (!response.ok) throw new Error('Network response was not ok.'); const data = await response.json(); return data.success ? data.leaderboard : []; } catch (error) { console.error("獲取排行榜時發生網絡錯誤:", error); return []; } },
+            async getFullLeaderboard() { 
+                if (state.fullLeaderboard) return state.fullLeaderboard; // 如果有緩存，直接回傳
+                try { 
+                    const url = new URL(SCRIPT_URL); 
+                    url.searchParams.set('t', new Date().getTime()); 
+                    const response = await fetch(url); 
+                    if (!response.ok) throw new Error('Network response was not ok.'); 
+                    const data = await response.json(); 
+                    if (data.success) {
+                        state.fullLeaderboard = data.leaderboard; // 儲存到緩存
+                        return data.leaderboard;
+                    }
+                    return [];
+                } catch (error) { console.error("獲取排行榜時發生網絡錯誤:", error); return []; } 
+            },
+            
             async saveToLeaderboard(playerClass, playerName, playerScore) { /* ... (no changes) ... */ try { const url = new URL(SCRIPT_URL); url.searchParams.set('action', 'write'); url.searchParams.set('class', playerClass); url.searchParams.set('name', playerName); url.searchParams.set('score', playerScore); fetch(url); } catch (error) { console.error("儲存分數時發生網絡錯誤:", error); alert('無法連接到伺服器，你的分數可能未能成功儲存。'); } },
-            async getPlayerRank(playerClass, playerName) { /* ... (no changes) ... */ const board = await functions.getFullLeaderboard(); const playerIndex = board.findIndex(p => p.class === playerClass && p.name === playerName); return playerIndex !== -1 ? playerIndex + 1 : -1; },
-            async displayLeaderboard(container, currentPlayerClass = null, currentPlayerName = null) { /* ... (no changes) ... */ container.innerHTML = '<h2>排行榜</h2><p>載入中...</p>'; const board = await functions.getFullLeaderboard(); const top10 = board.slice(0, 10); if (top10.length === 0) { container.innerHTML = '<h2>排行榜</h2><p>還沒有人上榜！</p>'; return; } container.innerHTML = '<h2>排行榜</h2>'; const list = document.createElement('ol'); list.className = 'leaderboard-list'; top10.forEach((p, i) => { const item = document.createElement('li'); item.className = 'leaderboard-item'; if (p.class === currentPlayerClass && p.name === currentPlayerName) { item.classList.add('current-player'); } const nameSpan = document.createElement('span'); nameSpan.textContent = `${i + 1}. ${p.class} ${p.name}`; const scoreSpan = document.createElement('span'); scoreSpan.textContent = `⭐ ${p.score}`; item.appendChild(nameSpan); item.appendChild(scoreSpan); list.appendChild(item); }); container.appendChild(list); },
+            
+            // ******************** 版本 1.5 變更 ********************
+            async getPlayerRank(playerClass, playerName) {
+                const board = await functions.getFullLeaderboard();
+                const rankedBoard = functions.calculateRanks(board); // 計算並列排名
+                const player = rankedBoard.find(p => p.class === playerClass && p.name === playerName);
+                return player ? player.rank : -1;
+            },
+
+            async displayLeaderboard(container, currentPlayerClass = null, currentPlayerName = null) {
+                container.innerHTML = '<h2>排行榜</h2><p>載入中...</p>';
+                const board = await functions.getFullLeaderboard();
+                const rankedBoard = functions.calculateRanks(board); // 計算並列排名
+                const topEntries = rankedBoard.slice(0, 10);
+                
+                if (topEntries.length === 0) { container.innerHTML = '<h2>排行榜</h2><p>還沒有人上榜！</p>'; return; }
+                
+                container.innerHTML = '<h2>排行榜</h2>';
+                const list = document.createElement('ol');
+                list.className = 'leaderboard-list';
+
+                topEntries.forEach(p => { // 不再需要索引 i
+                    const item = document.createElement('li');
+                    item.className = 'leaderboard-item';
+                    if (p.class === currentPlayerClass && p.name === currentPlayerName) {
+                        item.classList.add('current-player');
+                    }
+                    const nameSpan = document.createElement('span');
+                    // 直接使用計算好的 rank
+                    nameSpan.textContent = `${p.rank}. ${p.class} ${p.name}`;
+                    const scoreSpan = document.createElement('span');
+                    scoreSpan.textContent = `⭐ ${p.score}`;
+                    item.appendChild(nameSpan);
+                    item.appendChild(scoreSpan);
+                    list.appendChild(item);
+                });
+                container.appendChild(list);
+            },
+            // *********************************************************
+
             generateQuestion() { /* ... (no changes) ... */ state.isAidUsed = false; const n1 = Math.floor(Math.random() * 11), n2 = Math.floor(Math.random() * 11); state.currentQuestionNums = { n1, n2 }; state.currentCorrectAnswer = n1 * n2; ELEMENTS.questionArea.textContent = `${n1} x ${n2} = ?`; let answers = [state.currentCorrectAnswer]; while (answers.length < 4) { const w = Math.floor(Math.random() * 101); if (!answers.includes(w)) answers.push(w); } for (let i = answers.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [answers[i], answers[j]] = [answers[j], answers[i]]; } ELEMENTS.answerButtons.forEach((btn, i) => btn.textContent = answers[i]); },
             showVisualAid() { /* ... (no changes) ... */ if (state.isAnswering) return; state.isAidUsed = true; state.isAnswering = true; ELEMENTS.aidContent.innerHTML = ''; const r = Math.min(state.currentQuestionNums.n1, state.currentQuestionNums.n2), c = Math.max(state.currentQuestionNums.n1, state.currentQuestionNums.n2); for (let i = 0; i < r; i++) { const row = document.createElement('div'); row.className = 'aid-row'; for (let j = 0; j < c; j++) { const obj = document.createElement('span'); obj.className = 'aid-object'; obj.textContent = '⭐'; row.appendChild(obj); } ELEMENTS.aidContent.appendChild(row); } ELEMENTS.aidOverlay.classList.add('active'); },
             hideVisualAid() { /* ... (no changes) ... */ ELEMENTS.aidOverlay.classList.remove('active'); state.isAnswering = false; },
